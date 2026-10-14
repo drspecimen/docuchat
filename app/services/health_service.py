@@ -2,6 +2,7 @@ import time
 from datetime import datetime, timezone
 
 from app import __version__
+from app.core.config import get_settings
 from app.schemas.health import HealthResponse
 
 # Recorded once, when the app first imports this module
@@ -14,6 +15,7 @@ def get_health() -> HealthResponse:
         status="ok",
         service="docuchat",
         version=__version__,
+        environment=get_settings().app_env,
         uptime_seconds=round(time.monotonic() - _STARTED_AT, 2),
         timestamp=datetime.now(timezone.utc),
     )
