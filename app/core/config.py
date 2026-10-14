@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # App
     app_env: Literal["development", "test", "production"] = "development"
     port: int = Field(default=8000, ge=1, le=65535)
+    log_level: Literal["debug", "info", "warning", "error"] = "info"
+    
+
 
     # Database
     database_url: str = Field(min_length=1)
