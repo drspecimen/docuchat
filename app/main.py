@@ -2,12 +2,15 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.api import health
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
+from app.middleware.error_handler import register_error_handlers
 from app.middleware.request_logging import RequestLoggingMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 
 logger = get_logger("docuchat.app")
 
@@ -16,9 +19,14 @@ logger = get_logger("docuchat.app")
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Code that runs once when the app starts, and once when it stops."""
     settings = get_settings()
-    logger.info("app_started", version=__version__, environment=settings.app_env)
+    logger.info(
+        "server_started",
+        port=settings.port,
+        environment=settings.app_env,
+        version=__version__,
+    )
     yield
-    logger.info("app_stopped")
+    logger.info("server_stopped")
 
 
 def create_app() -> FastAPI:
@@ -35,8 +43,23 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # === MIDDLEWARE ===
+    # Starlette runs the LAST one added FIRST, so they are added in reverse:
+    # a request passes CORS -> security headers -> request logging -> route.
     app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # open for now, like cors() in the lesson; locked down in Step 3.6
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # === ROUTES ===
     app.include_router(health.router)
+
+    # === ERROR HANDLER (catches anything the routes did not handle) ===
+    register_error_handlers(app)
 
     return app
 

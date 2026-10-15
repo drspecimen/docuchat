@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # App
     app_env: Literal["development", "test", "production"] = "development"
     port: int = Field(default=8000, ge=1, le=65535)
-    log_level: Literal["debug", "info", "warning", "error"] = "info"
+    log_level: Literal["debug", "info", "warning", "error"] | None = None
     
 
 
@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+
+    @property
+    def effective_log_level(self) -> str:
+        """LOG_LEVEL if set; otherwise debug in development and info elsewhere."""
+        if self.log_level:
+            return self.log_level
+        return "debug" if self.app_env == "development" else "info" 
 
 
 def _load_settings() -> Settings:

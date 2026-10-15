@@ -48,7 +48,11 @@ def configure_logging(settings: Settings) -> None:
     root = logging.getLogger()
     root.handlers.clear()
     root.addHandler(handler)
-    root.setLevel(settings.log_level.upper())
+    root.setLevel(settings.effective_log_level.upper())
+
+    # Keep chatty libraries quiet even in debug mode
+    for noisy in ("asyncio", "httpx", "httpcore", "watchfiles"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
     # Uvicorn's own logs flow through our handler instead of its default format
     for name in ("uvicorn", "uvicorn.error"):
